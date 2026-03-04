@@ -2,7 +2,7 @@
 
 import streamlit as st
 from matcher import find_best_match
-from fallback import get_fallback_response
+from fallback import generate_response
 
 st.set_page_config(
     page_title="Thoughtful AI Support",
@@ -22,7 +22,9 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
         if "confidence" in message:
-            st.caption(f"🎯 Confidence: {message['confidence']:.1%}")
+            st.caption(f"🎯 Match confidence: {message['confidence']:.1%}")
+        elif "source" in message:
+            st.caption(f"💬 {message['source']}")
 
 # Handle user input
 if prompt := st.chat_input("Ask a question about Thoughtful AI..."):
@@ -31,27 +33,31 @@ if prompt := st.chat_input("Ask a question about Thoughtful AI..."):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Find best match
+    # Find best match from predefined Q&A
     result = find_best_match(prompt)
+    history = [m for m in st.session_state.messages if "confidence" not in m and "source" not in m]
 
     if result["is_match"]:
-        response = result["answer"]
+        # Match found: pass matched answer through Claude for conversational delivery
+        response = generate_response(prompt, history, matched_answer=result["answer"])
         confidence = result["confidence"]
+        source = "Verified answer"
     else:
-        # Fallback to Claude
-        history = [m for m in st.session_state.messages if "confidence" not in m]
-        response = get_fallback_response(prompt, history)
+        # No match: let Claude answer freely
+        response = generate_response(prompt, history)
         confidence = None
+        source = "General response via Claude"
 
     # Display assistant response
     with st.chat_message("assistant"):
         st.markdown(response)
         if confidence is not None:
-            st.caption(f"🎯 Confidence: {confidence:.1%}")
+            st.caption(f"🎯 Match confidence: {confidence:.1%}")
         else:
-            st.caption("💬 General response via Claude")
+            st.caption(f"💬 {source}")
 
     msg = {"role": "assistant", "content": response}
     if confidence is not None:
         msg["confidence"] = confidence
+    msg["source"] = source
     st.session_state.messages.append(msg)
