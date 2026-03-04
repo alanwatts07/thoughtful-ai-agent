@@ -1,9 +1,11 @@
-"""Semantic similarity matching engine using sentence-transformers."""
+"""Semantic similarity matching engine using TF-IDF + cosine similarity."""
 
-from sentence_transformers import SentenceTransformer, util
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from data import QUESTIONS
 
-CONFIDENCE_THRESHOLD = 0.45
+CONFIDENCE_THRESHOLD = 0.35
 
 # Keyword map: if any of these appear in user input, force match to that question index
 KEYWORD_MAP = {
@@ -12,11 +14,10 @@ KEYWORD_MAP = {
     "phil": 2,      # Payment Posting Agent
 }
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
-# Pre-compute embeddings for all predefined questions
+# Pre-compute TF-IDF vectors for all predefined questions
 question_texts = [q["question"] for q in QUESTIONS]
-question_embeddings = model.encode(question_texts, convert_to_tensor=True)
+vectorizer = TfidfVectorizer(stop_words="english")
+question_vectors = vectorizer.fit_transform(question_texts)
 
 
 def _keyword_match(user_input: str) -> dict | None:
@@ -39,7 +40,7 @@ def find_best_match(user_input: str) -> dict:
     """Find the most relevant predefined answer.
 
     First checks for exact agent name keywords (EVA, CAM, PHIL).
-    Falls back to semantic similarity matching via embeddings.
+    Falls back to TF-IDF cosine similarity matching.
     Returns dict with 'answer', 'matched_question', 'confidence',
     and 'is_match' (True if matched).
     """
@@ -48,12 +49,12 @@ def find_best_match(user_input: str) -> dict:
     if keyword_result:
         return keyword_result
 
-    # Semantic similarity matching
-    user_embedding = model.encode(user_input, convert_to_tensor=True)
-    similarities = util.cos_sim(user_embedding, question_embeddings)[0]
+    # TF-IDF cosine similarity matching
+    user_vector = vectorizer.transform([user_input])
+    similarities = cosine_similarity(user_vector, question_vectors)[0]
 
-    best_idx = similarities.argmax().item()
-    best_score = similarities[best_idx].item()
+    best_idx = int(np.argmax(similarities))
+    best_score = float(similarities[best_idx])
 
     return {
         "answer": QUESTIONS[best_idx]["answer"],

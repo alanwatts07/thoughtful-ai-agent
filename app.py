@@ -35,7 +35,10 @@ if prompt := st.chat_input("Ask a question about Thoughtful AI..."):
 
     # Find best match from predefined Q&A
     result = find_best_match(prompt)
-    history = [m for m in st.session_state.messages if "confidence" not in m and "source" not in m]
+
+    # Build clean history (only role + content, last 6 messages for context)
+    history = [{"role": m["role"], "content": m["content"]}
+               for m in st.session_state.messages[-6:]]
 
     if result["is_match"]:
         # Match found: pass matched answer through Claude for conversational delivery
@@ -43,7 +46,7 @@ if prompt := st.chat_input("Ask a question about Thoughtful AI..."):
         confidence = result["confidence"]
         source = "Verified answer"
     else:
-        # No match: let Claude answer freely
+        # No match: let Claude answer freely (no matched_answer = no grounding context)
         response = generate_response(prompt, history)
         confidence = None
         source = "General response via Claude"

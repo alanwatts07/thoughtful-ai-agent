@@ -5,11 +5,12 @@ A conversational AI support agent that uses **semantic similarity matching** to 
 ## How It Works
 
 1. User asks a question in the chat interface
-2. The question is converted to an embedding using `all-MiniLM-L6-v2`
-3. Cosine similarity is computed against predefined Q&A about Thoughtful AI's agents (EVA, CAM, PHIL)
-4. If confidence is above the threshold, the predefined answer is returned with a confidence score
-5. If below threshold, the question is routed to Claude (Haiku) for a contextual response
-6. All responses are displayed in a clean Streamlit chat UI with conversation history
+2. **Keyword check**: if an agent name (EVA, CAM, PHIL) appears in the input, instant match
+3. **TF-IDF similarity**: question is vectorized and compared against predefined Q&A using cosine similarity
+4. If confidence is above the threshold, the matched answer is passed to Claude as context for **conversational delivery** (RAG-style)
+5. If below threshold, Claude answers freely as a Thoughtful AI support agent
+6. If no API key is set, matched answers are returned directly and unmatched queries get a helpful fallback
+7. All responses are displayed in a Streamlit chat UI with conversation history
 
 ## Quick Start
 
@@ -41,13 +42,15 @@ streamlit run app.py
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
 | UI | Streamlit | Fastest Python-native chat UI |
-| Matching | sentence-transformers | Semantic similarity understands meaning, not just keywords |
-| Embeddings | all-MiniLM-L6-v2 | Lightweight, fast, well-suited for small datasets |
-| Fallback | Claude API (Haiku) | Fast and cheap for general-purpose responses |
+| Matching | TF-IDF + cosine similarity | Semantic matching without heavy ML dependencies |
+| Vectorizer | scikit-learn TfidfVectorizer | Lightweight, no GPU needed, deploys anywhere |
+| Response | Claude API (Haiku) | Conversational delivery of matched answers + free-form fallback |
 
 ## Design Decisions
 
-- **Semantic matching over keyword matching**: A user asking "How does EVA work?" matches the predefined question about EVA even though the wording is different. This is more robust than string matching or regex.
-- **Confidence threshold**: Configurable threshold (default 0.45) determines when to use a predefined answer vs. falling back to Claude. This prevents low-confidence matches from returning incorrect answers.
-- **Graceful degradation**: If no API key is set, the fallback returns a helpful message directing users to ask about known topics. The app never crashes on missing config.
-- **Conversation history**: Chat history is maintained in Streamlit session state, giving Claude context for follow-up questions in fallback mode.
+- **Three-layer matching**: Keyword match (agent names) → TF-IDF cosine similarity → Claude fallback. Each layer catches what the previous one misses.
+- **RAG-style response generation**: Matched predefined answers are passed to Claude as grounding context, not returned as raw strings. This makes every response feel conversational while staying accurate.
+- **TF-IDF over heavy embeddings**: For 5 predefined questions, TF-IDF with scikit-learn gives accurate matching without PyTorch (~2GB) or sentence-transformers. Right tool for the scale.
+- **Confidence threshold**: Configurable threshold (default 0.35) determines when to use a predefined answer vs. falling back to Claude. Prevents low-confidence matches from returning incorrect answers.
+- **Graceful degradation**: If no API key is set, matched answers are returned directly. Unmatched queries get a helpful message. The app never crashes on missing config.
+- **Conversation history**: Chat history is maintained in Streamlit session state, giving Claude context for follow-up questions.

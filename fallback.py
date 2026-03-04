@@ -1,7 +1,10 @@
 """Claude API response layer for conversational delivery."""
 
 import os
+from dotenv import load_dotenv
 import anthropic
+
+load_dotenv()
 
 SYSTEM_PROMPT = """You are a helpful customer support assistant for Thoughtful AI,
 a company that provides AI-powered automation agents for healthcare revenue cycle
