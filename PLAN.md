@@ -19,10 +19,10 @@ User Input → Embedding → Cosine Similarity vs Predefined Q&A
 ## Build Steps
 
 - [x] Step 1: Project structure and predefined dataset
-- [ ] Step 2: Semantic similarity matching engine with embeddings
-- [ ] Step 3: Claude API fallback for unmatched queries
-- [ ] Step 4: Streamlit chat UI with conversation history
-- [ ] Step 5: Error handling, confidence display, and README
+- [x] Step 2: Semantic similarity matching engine with embeddings
+- [x] Step 3: Claude API fallback for unmatched queries
+- [x] Step 4: Streamlit chat UI with conversation history
+- [x] Step 5: Error handling, confidence display, and README
 
 ## Tech Choices
 
